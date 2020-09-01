@@ -1,0 +1,4 @@
+include ':animotion'
+include ':viro_core'
+include ':app'
+rootProject.name = "animotiondemo"
