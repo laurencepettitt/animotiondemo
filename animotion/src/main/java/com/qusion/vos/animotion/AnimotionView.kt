@@ -13,15 +13,8 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.databinding.DataBindingUtil
 import com.qusion.vos.animotion.databinding.AnimotionViewBinding
 import com.viro.core.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.coroutines.coroutineContext
-import kotlin.coroutines.suspendCoroutine
 import kotlin.properties.Delegates
-import kotlin.time.TimeSource
 
 class AnimotionView @JvmOverloads constructor(
     context: Context,
@@ -138,16 +131,16 @@ class AnimotionView @JvmOverloads constructor(
             }
         }
 
-        GlobalScope.launch {
-            val queue = CustomQueue { value: Float -> _moodValue = value }
-            var i = 0
-            val sz = MOODS.size
-            while (true) {
-                queue.insert(MOODS[i.rem(sz)].toFloat())
-                delay(200)
-                i++
-            }
-        }
+//        GlobalScope.launch {
+//            val queue = CustomQueue { value: Float -> _moodValue = value }
+//            var i = 0
+//            val sz = MOODS.size
+//            while (true) {
+//                queue.insert(MOODS[i.rem(sz)].toFloat())
+//                delay(200)
+//                i++
+//            }
+//        }
 
         bind.animotionSlider.addOnChangeListener { _, value, _ ->
             _moodValue = value
@@ -160,8 +153,13 @@ class AnimotionView @JvmOverloads constructor(
         _viroView = null
     }
 
+    private var acc: Float = 0.0f
+
     fun setMoodPercentage(smilePercent: Float) {
-        // to be impl
+        Timber.d("smilePercent: $smilePercent")
+        acc = acc * 0.75f + smilePercent * 0.25f
+        bind.animotionSlider.value = acc
+        Timber.d("acc: $acc")
     }
 
     private fun onStartupViroViewScene() {
@@ -215,28 +213,28 @@ class AnimotionView @JvmOverloads constructor(
     }
 }
 
-class CustomQueue(val listener: (Float) -> Unit) {
-
-    init {
-
-    }
-
-    private var time: Long? = null
-
-    private var acc: Float = 0.0f
-
-    fun insert(value: Float) {
-//        val newTime = System.currentTimeMillis()
-//        time?.let {
-//            time = newTime
-//        }
-//        val timeDelta = newTime - (time ?: 0)
-        acc = acc * 0.75f + value * 0.25f
-
-        listener(value)
-    }
-
-}
+//class CustomQueue(val listener: (Float) -> Unit) {
+//
+//    init {
+//
+//    }
+//
+//    private var time: Long? = null
+//
+//    private var acc: Float = 0.0f
+//
+//    fun insert(value: Float) {
+////        val newTime = System.currentTimeMillis()
+////        time?.let {
+////            time = newTime
+////        }
+////        val timeDelta = newTime - (time ?: 0)
+//        acc = acc * 0.75f + value * 0.25f
+//
+//        listener(value)
+//    }
+//
+//}
 
 @ColorInt
 private fun Context.getColorFromAttr(
