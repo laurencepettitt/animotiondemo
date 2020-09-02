@@ -112,6 +112,10 @@ class AnimotionView @JvmOverloads constructor(
         _viroView = null
     }
 
+    fun setMoodPercentage(smilePercent: Float) {
+        // to be impl
+    }
+
     private fun onStartupViroViewScene() {
         _viroView = ViroViewScene(this.context, object : ViroViewScene.StartupListener {
             override fun onSuccess() {
