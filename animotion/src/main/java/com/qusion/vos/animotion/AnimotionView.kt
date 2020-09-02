@@ -234,10 +234,10 @@ class CustomQueue(val listener: (Float) -> Unit) {
 //            time = newTime
 //        }
 //        val timeDelta = newTime - (time ?: 0)
-
+//
         acc = acc * 0.75f + value * 0.25f
 
-        listener(acc)
+        listener(value)
     }
 
 }
