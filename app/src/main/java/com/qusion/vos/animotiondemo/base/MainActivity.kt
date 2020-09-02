@@ -1,7 +1,8 @@
-package com.qusion.vos.animotiondemo
+package com.qusion.vos.animotiondemo.base
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.qusion.vos.animotiondemo.BuildConfig
 import com.qusion.vos.animotiondemo.R
 import timber.log.Timber
 

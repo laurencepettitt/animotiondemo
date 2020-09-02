@@ -6,6 +6,8 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.LayoutInflater
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.databinding.DataBindingUtil
@@ -35,7 +37,7 @@ class AnimotionView @JvmOverloads constructor(
         R.layout.animotion_view, this, true
     )
 
-    private var moodValue: Float by Delegates.observable(1.0F) { _, _, newValue ->
+    private var _moodValue: Float by Delegates.observable(1.0F) { _, _, newValue ->
         _modelObject3D?.setMorphTargetWeight("0", newValue)
     }
 
@@ -70,8 +72,9 @@ class AnimotionView @JvmOverloads constructor(
     )
 
     private var _modelObject3D: Object3D? = null
+    private var _modelUri: Uri = Uri.EMPTY
 
-    private val _spotlight by lazy {
+    private val spotLight by lazy {
         Spotlight().apply {
             position = Vector(-3.5, 5.0, 3.0)
             direction = Vector(0.0, 0.0, -1.0)
@@ -84,7 +87,10 @@ class AnimotionView @JvmOverloads constructor(
         }
     }
 
-    private var _modelUri: Uri = Uri.EMPTY
+    private val ambientLight by lazy {
+        AmbientLight(Color.WHITE.toLong(), 200F)
+    }
+
 
     init {
         context.theme.obtainStyledAttributes(
@@ -133,7 +139,7 @@ class AnimotionView @JvmOverloads constructor(
         }
 
         GlobalScope.launch {
-            val queue = CustomQueue { value: Float -> moodValue = value }
+            val queue = CustomQueue { value: Float -> _moodValue = value }
             var i = 0
             val sz = MOODS.size
             while (true) {
@@ -144,7 +150,7 @@ class AnimotionView @JvmOverloads constructor(
         }
 
         bind.animotionSlider.addOnChangeListener { _, value, _ ->
-            moodValue = value
+            _moodValue = value
         }
     }
 
@@ -152,6 +158,10 @@ class AnimotionView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         _viroView?.dispose()
         _viroView = null
+    }
+
+    fun setMoodPercentage(smilePercent: Float) {
+        // to be impl
     }
 
     private fun onStartupViroViewScene() {
@@ -171,28 +181,19 @@ class AnimotionView @JvmOverloads constructor(
             loadModel(
                 _viroView?.viroContext,
                 _modelUri,
-//                Uri.parse(""),
                 Object3D.Type.GLB,
                 object : AsyncObject3DListener {
-
-                    override fun onObject3DFailed(p0: String?) {
-                        Timber.w("Failed to load the model");
-
+                    override fun onObject3DFailed(reason: String?) {
+                        Timber.w("Failed to load the model")
                     }
 
                     override fun onObject3DLoaded(model: Object3D?, type: Object3D.Type?) {
-                        Timber.i("Successfully loaded the model!");
-                        model?.let {
-                            it.setMorphTargetWeight("0", 1.0F)
-                            _modelObject3D = model
-                        }
+                        Timber.i("Successfully loaded the model!")
+                        _modelObject3D = model
                     }
                 })
             setPosition(Vector(0.0, 0.0, 0.0))
         }
-
-
-        val ambientLight = AmbientLight(Color.WHITE.toLong(), 200F)
 
         val cameraNode = Node().apply {
             setPosition(Vector(0.0, 1.4, 2.5))
@@ -202,19 +203,15 @@ class AnimotionView @JvmOverloads constructor(
 
         _viroView?.setPointOfView(cameraNode)
 
-        val scene = Scene()
-        scene.rootNode.apply {
-            addChildNode(avatar)
-            addChildNode(cameraNode)
-            addLight(ambientLight)
-            addLight(_spotlight)
+        return Scene().apply {
+            rootNode.apply {
+                addChildNode(avatar)
+                addChildNode(cameraNode)
+                addLight(ambientLight)
+                addLight(spotLight)
+                setBackgroundCubeWithColor(context.getColorFromAttr(R.attr.colorPrimary).toLong())
+            }
         }
-
-        val colorPrimaryValue = TypedValue()
-        context.theme.resolveAttribute(R.attr.colorSurface, colorPrimaryValue, true)
-        scene.setBackgroundCubeWithColor(colorPrimaryValue.data.toLong())
-
-        return scene
     }
 }
 
@@ -234,10 +231,20 @@ class CustomQueue(val listener: (Float) -> Unit) {
 //            time = newTime
 //        }
 //        val timeDelta = newTime - (time ?: 0)
-//
         acc = acc * 0.75f + value * 0.25f
 
         listener(value)
     }
 
 }
+
+@ColorInt
+private fun Context.getColorFromAttr(
+    @AttrRes attrColor: Int,
+    typedValue: TypedValue = TypedValue(),
+    resolveRefs: Boolean = true
+): Int {
+    theme.resolveAttribute(attrColor, typedValue, resolveRefs)
+    return typedValue.data
+}
+
