@@ -11,8 +11,15 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.databinding.DataBindingUtil
 import com.qusion.vos.animotion.databinding.AnimotionViewBinding
 import com.viro.core.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.suspendCoroutine
 import kotlin.properties.Delegates
+import kotlin.time.TimeSource
 
 class AnimotionView @JvmOverloads constructor(
     context: Context,
@@ -32,9 +39,39 @@ class AnimotionView @JvmOverloads constructor(
         _modelObject3D?.setMorphTargetWeight("0", newValue)
     }
 
+    private val MOODS = listOf(
+        0.026149364,
+        0.2905569,
+        0.065936305,
+        0.1989207,
+        0.9895666,
+        0.9895666,
+        0.9914598,
+        0.9914598,
+        0.9910811,
+        0.21929683,
+        0.26047203,
+        0.7746653,
+        0.8453749,
+        0.35873604,
+        0.9910811,
+        0.011907466,
+        0.029783526,
+        0.06494977,
+        0.38200837,
+        0.38200837,
+        0.13751231,
+        0.10806591,
+        0.9960033,
+        0.9956247,
+        0.9693333,
+        0.9601184,
+        0.98880935
+    )
+
     private var _modelObject3D: Object3D? = null
 
-    val spotlight by lazy {
+    private val _spotlight by lazy {
         Spotlight().apply {
             position = Vector(-3.5, 5.0, 3.0)
             direction = Vector(0.0, 0.0, -1.0)
@@ -95,6 +132,17 @@ class AnimotionView @JvmOverloads constructor(
             }
         }
 
+        GlobalScope.launch {
+            val queue = CustomQueue { value: Float -> moodValue = value }
+            var i = 0
+            val sz = MOODS.size
+            while (true) {
+                queue.insert(MOODS[i.rem(sz)].toFloat())
+                delay(200)
+                i++
+            }
+        }
+
         bind.animotionSlider.addOnChangeListener { _, value, _ ->
             moodValue = value
         }
@@ -118,14 +166,12 @@ class AnimotionView @JvmOverloads constructor(
     }
 
     private fun getScene(): Scene {
-        // Create a new Scene and get its root Node
-        val scene = Scene()
 
         val avatar = Object3D().apply {
             loadModel(
                 _viroView?.viroContext,
                 _modelUri,
-//                Uri.parse("file:///android_asset/boy-full.glb"),
+//                Uri.parse(""),
                 Object3D.Type.GLB,
                 object : AsyncObject3DListener {
 
@@ -134,16 +180,15 @@ class AnimotionView @JvmOverloads constructor(
 
                     }
 
-                    override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
+                    override fun onObject3DLoaded(model: Object3D?, type: Object3D.Type?) {
                         Timber.i("Successfully loaded the model!");
-                        p0?.let {
+                        model?.let {
                             it.setMorphTargetWeight("0", 1.0F)
-                            _modelObject3D = p0
+                            _modelObject3D = model
                         }
                     }
                 })
             setPosition(Vector(0.0, 0.0, 0.0))
-//            setRotation(Vector(0.0, -1.0, 0.0))
         }
 
 
@@ -157,18 +202,42 @@ class AnimotionView @JvmOverloads constructor(
 
         _viroView?.setPointOfView(cameraNode)
 
+        val scene = Scene()
         scene.rootNode.apply {
             addChildNode(avatar)
             addChildNode(cameraNode)
             addLight(ambientLight)
-            addLight(spotlight)
+            addLight(_spotlight)
         }
 
         val colorPrimaryValue = TypedValue()
         context.theme.resolveAttribute(R.attr.colorSurface, colorPrimaryValue, true)
         scene.setBackgroundCubeWithColor(colorPrimaryValue.data.toLong())
 
-        // Display the scene
         return scene
     }
+}
+
+class CustomQueue(val listener: (Float) -> Unit) {
+
+    init {
+
+    }
+
+    private var time: Long? = null
+
+    private var acc: Float = 0.0f
+
+    fun insert(value: Float) {
+//        val newTime = System.currentTimeMillis()
+//        time?.let {
+//            time = newTime
+//        }
+//        val timeDelta = newTime - (time ?: 0)
+
+        acc = acc * 0.75f + value * 0.25f
+
+        listener(acc)
+    }
+
 }
