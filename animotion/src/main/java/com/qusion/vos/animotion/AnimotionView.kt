@@ -24,9 +24,7 @@ class AnimotionView @JvmOverloads constructor(
     private lateinit var _viroView: ViroViewScene
 
     private var moodValue: Float by Delegates.observable(1.0F) { property, oldValue, newValue ->
-        object3D?.let {
-            it.setMorphTargetWeight("0", newValue)
-        }
+        object3D?.setMorphTargetWeight("0", newValue)
     }
 
     private var object3D: Object3D? = null
@@ -35,6 +33,9 @@ class AnimotionView @JvmOverloads constructor(
         LayoutInflater.from(context),
         R.layout.animotion_view, this, true
     )
+
+    // TODO: Resource management
+    private val faceDetector = FaceDetector()
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()

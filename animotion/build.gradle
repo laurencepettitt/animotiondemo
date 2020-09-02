@@ -51,6 +51,9 @@ dependencies {
     // Material
     implementation 'com.google.android.material:material:1.2.0'
 
+    // Face Detection
+    implementation 'com.google.mlkit:face-detection:16.0.2'
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
