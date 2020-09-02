@@ -21,65 +21,95 @@ class AnimotionView @JvmOverloads constructor(
 ) :
     ConstraintLayout(context, attrs, defStyleAttr) {
 
-    private lateinit var _viroView: ViroViewScene
-
-    private var moodValue: Float by Delegates.observable(1.0F) { property, oldValue, newValue ->
-        object3D?.let {
-            it.setMorphTargetWeight("0", newValue)
-        }
-    }
-
-    private var object3D: Object3D? = null
+    private var _viroView: ViroViewScene? = null
 
     private val bind: AnimotionViewBinding = DataBindingUtil.inflate(
         LayoutInflater.from(context),
         R.layout.animotion_view, this, true
     )
 
+    private var moodValue: Float by Delegates.observable(1.0F) { _, _, newValue ->
+        _modelObject3D?.setMorphTargetWeight("0", newValue)
+    }
+
+    private var _modelObject3D: Object3D? = null
+
+    val spotlight by lazy {
+        Spotlight().apply {
+            position = Vector(-3.5, 5.0, 3.0)
+            direction = Vector(0.0, 0.0, -1.0)
+            attenuationStartDistance = 5f
+            attenuationEndDistance = 10f
+            innerAngle = 5f
+            outerAngle = 20f
+            color = Color.GRAY.toLong()
+            intensity = 700f
+        }
+    }
+
+    private var _modelUri: Uri = Uri.EMPTY
+
+    init {
+        context.theme.obtainStyledAttributes(
+            attrs,
+            R.styleable.AnimotionView,
+            0, 0
+        ).apply {
+            try {
+                _modelUri = Uri.parse(getString(R.styleable.AnimotionView_modelSrc))
+            } finally {
+                recycle()
+            }
+        }
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         onStartupViroViewScene()
 
-        _viroView.id = generateViewId()
-        bind.animotionContainer.addView(_viroView)
+        _viroView?.let { viroView ->
+            viroView.id = generateViewId()
+            bind.animotionContainer.addView(_viroView)
 
-        ConstraintSet().also {
-            it.clone(bind.animotionContainer)
-            it.connect(
-                _viroView.id,
-                ConstraintSet.START,
-                bind.animotionContainer.id,
-                ConstraintSet.START
-            )
-            it.connect(
-                _viroView.id,
-                ConstraintSet.END,
-                bind.animotionContainer.id,
-                ConstraintSet.END
-            )
-            it.connect(
-                _viroView.id,
-                ConstraintSet.BOTTOM,
-                bind.animotionSlider.id,
-                ConstraintSet.TOP
-            )
-            it.applyTo(bind.animotionContainer)
+            ConstraintSet().apply {
+                clone(bind.animotionContainer)
+                connect(
+                    viroView.id,
+                    ConstraintSet.START,
+                    bind.animotionContainer.id,
+                    ConstraintSet.START
+                )
+                connect(
+                    viroView.id,
+                    ConstraintSet.END,
+                    bind.animotionContainer.id,
+                    ConstraintSet.END
+                )
+                connect(
+                    viroView.id,
+                    ConstraintSet.BOTTOM,
+                    bind.animotionSlider.id,
+                    ConstraintSet.TOP
+                )
+                applyTo(bind.animotionContainer)
+            }
         }
 
-        bind.animotionSlider.addOnChangeListener { slider, value, fromUser ->
+        bind.animotionSlider.addOnChangeListener { _, value, _ ->
             moodValue = value
         }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        _viroView.dispose()
+        _viroView?.dispose()
+        _viroView = null
     }
 
     private fun onStartupViroViewScene() {
         _viroView = ViroViewScene(this.context, object : ViroViewScene.StartupListener {
             override fun onSuccess() {
-                onCreateViewScene()
+                _viroView?.scene = getScene()
             }
 
             override fun onFailure(error: ViroViewScene.StartupError, errorMessage: String) {
@@ -87,14 +117,15 @@ class AnimotionView @JvmOverloads constructor(
         })
     }
 
-    private fun onCreateViewScene() {
+    private fun getScene(): Scene {
         // Create a new Scene and get its root Node
         val scene = Scene()
 
-        val avatar = Object3D().also {
-            it.loadModel(
-                _viroView.viroContext,
-                Uri.parse("file:///android_asset/boy-full.glb"),
+        val avatar = Object3D().apply {
+            loadModel(
+                _viroView?.viroContext,
+                _modelUri,
+//                Uri.parse("file:///android_asset/boy-full.glb"),
                 Object3D.Type.GLB,
                 object : AsyncObject3DListener {
 
@@ -107,49 +138,37 @@ class AnimotionView @JvmOverloads constructor(
                         Timber.i("Successfully loaded the model!");
                         p0?.let {
                             it.setMorphTargetWeight("0", 1.0F)
-                            object3D = p0
+                            _modelObject3D = p0
                         }
                     }
                 })
-            it.setPosition(Vector(0.0, 0.0, 0.0))
-//            it.setRotation(Vector(0.0, -1.0, 0.0))
+            setPosition(Vector(0.0, 0.0, 0.0))
+//            setRotation(Vector(0.0, -1.0, 0.0))
         }
 
-
-        val spotlight = Spotlight().also {
-            it.position = Vector(-3.5, 5.0, 3.0)
-            it.direction = Vector(0.0, 0.0, -1.0)
-            it.attenuationStartDistance = 5f
-            it.attenuationEndDistance = 10f
-            it.innerAngle = 5f
-            it.outerAngle = 20f
-            it.color = Color.GRAY.toLong()
-            it.intensity = 700f
-        }
 
         val ambientLight = AmbientLight(Color.WHITE.toLong(), 200F)
 
-        val cameraNode = Node().also {
-            it.setPosition(Vector(0.0, 1.4, 2.5))
-            it.setRotation(Vector(0.0, 0.0, 0.0))
-            it.camera = Camera()
+        val cameraNode = Node().apply {
+            setPosition(Vector(0.0, 1.4, 2.5))
+            setRotation(Vector(0.0, 0.0, 0.0))
+            camera = Camera()
         }
 
-        _viroView.setPointOfView(cameraNode)
+        _viroView?.setPointOfView(cameraNode)
 
-        scene.rootNode.also {
-            it.addChildNode(avatar)
-            it.addChildNode(cameraNode)
-            it.addLight(ambientLight)
-            it.addLight(spotlight)
+        scene.rootNode.apply {
+            addChildNode(avatar)
+            addChildNode(cameraNode)
+            addLight(ambientLight)
+            addLight(spotlight)
         }
 
-        val colorPrimaryValue = TypedValue();
-        context.theme.resolveAttribute(R.attr.colorPrimarySurface, colorPrimaryValue, true)
+        val colorPrimaryValue = TypedValue()
+        context.theme.resolveAttribute(R.attr.colorSurface, colorPrimaryValue, true)
         scene.setBackgroundCubeWithColor(colorPrimaryValue.data.toLong())
 
         // Display the scene
-        _viroView.setScene(scene)
+        return scene
     }
-
 }
