@@ -113,7 +113,7 @@ class AnimotionView @JvmOverloads constructor(
     }
 
     fun setMoodPercentage(smilePercent: Float) {
-        // to be impl
+        bind.animotionSlider.value = smilePercent
     }
 
     private fun onStartupViroViewScene() {
@@ -161,7 +161,7 @@ class AnimotionView @JvmOverloads constructor(
                 addChildNode(cameraNode)
                 addLight(ambientLight)
                 addLight(spotLight)
-                setBackgroundCubeWithColor(context.getColorFromAttr(R.attr.colorPrimary).toLong())
+                setBackgroundCubeWithColor(context.getColorFromAttr(R.attr.colorSurface).toLong())
             }
         }
     }
